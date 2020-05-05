@@ -10,6 +10,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+
+using Elastic.Apm.NetCoreAll;
+using esapm.Models;
+using esapm.Services;
+using esapm.Exceptions;
 
 namespace esapm
 {
@@ -25,12 +31,19 @@ namespace esapm
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            services.AddControllers(options =>
+                options.Filters.Add(new HttpResponseExceptionFilter()));
+            services.AddDbContext<EsApmDbContext>(options =>
+                options.UseMySQL(Configuration.GetConnectionString("EsApmDatabase")));
+            services.AddHttpClient<IExternalService, ExternalService>();
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseAllElasticApm(Configuration);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
